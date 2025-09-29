@@ -1,0 +1,68 @@
+{% extends 'attendance/base.html' %}
+{% block title %}Dashboard · QR Attendance{% endblock %}
+{% block content %}
+<div class="hero">
+  <h1>Dashboard</h1>
+  <p class="muted-sm">Manage your recent sessions and track attendance at a glance.</p>
+  <div class="grid two" style="margin-top:8px">
+    <div class="card" style="margin:0">
+      <div><span class="muted-sm">Total Sessions</span><div style="font-size:1.6rem;font-weight:700">{{ sessions|length }}</div></div>
+    </div>
+    <div class="card" style="margin:0">
+      <div><span class="muted-sm">Open Sessions</span><div style="font-size:1.6rem;font-weight:700">{{ open_count }}</div></div>
+    </div>
+  </div>
+  </div>
+
+<div class="card">
+  <h2 class="section-title">Recent Sessions</h2>
+  <table id="sessions" class="table-clean">
+    <thead>
+      <tr>
+        <th style="width:18%">Title</th>
+        <th style="width:14%">Teacher</th>
+        <th style="width:14%">Subject</th>
+        <th style="width:10%">Slot</th>
+        <th style="width:10%">Code</th>
+        <th style="width:8%" class="text-center">Open</th>
+        <th style="width:12%">Start</th>
+        <th style="width:12%">End</th>
+        <th style="width:6%" class="text-right">Records</th>
+        <th style="width:6%" class="text-right">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for s in sessions %}
+      <tr>
+        <td><a href="/t/{{ s.code }}/">{{ s.title }}</a></td>
+        <td>{{ s.teacher }}</td>
+        <td>{{ s.subject }}</td>
+        <td>{{ s.time_slot }}</td>
+        <td><code>{{ s.code }}</code></td>
+        <td class="text-center">{% if s.is_open %}<span class="pill ok">Open</span>{% else %}<span class="pill warn">Closed</span>{% endif %}</td>
+        <td>{{ s.starts_at }}</td>
+        <td>{{ s.ends_at }}</td>
+        <td class="text-right">{{ s.records.count }}</td>
+        <td class="text-right"><button class="ghost" data-code="{{ s.code }}">Delete</button></td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="10" class="muted">No sessions yet</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+  document.querySelectorAll('#sessions button[data-code]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if(!confirm('Delete this session?')) return;
+      const code = btn.getAttribute('data-code');
+      const form = new FormData();
+      const res = await fetch(`/dashboard/delete/${code}`, {method:'POST', headers:{'X-CSRFToken': '{{ csrf_token }}'}, body: form});
+      const j = await res.json();
+      if(j.ok){ location.reload(); } else { alert(j.error || 'Delete failed'); }
+    });
+  });
+</script>
+{% endblock %}
+

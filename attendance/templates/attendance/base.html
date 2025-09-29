@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}QR Attendance{% endblock %}</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+    {% block head %}{% endblock %}
+</head>
+<body>
+    {% if request.path|slice:":6" != '/scan/' %}
+      <header class="container header">
+          <a class="brand" href="/">QR Attendance</a>
+          <button id="navToggle" class="hamburger" aria-label="Toggle navigation" aria-expanded="false">☰</button>
+          <nav id="navMenu" class="nav-menu">
+              {% if request.session.teacher_authed %}
+                <a href="/">Home</a>
+                <a href="/dashboard/">Dashboard</a>
+                <a href="/reports/">Reports</a>
+                <a href="/settings/students/">Settings</a>
+              {% else %}
+                <a href="/login/">Teacher Login</a>
+              {% endif %}
+          </nav>
+      </header>
+      <script>
+        (function(){
+          const btn = document.getElementById('navToggle');
+          const menu = document.getElementById('navMenu');
+          if(btn && menu){
+            btn.addEventListener('click', function(){
+              const open = menu.classList.toggle('open');
+              btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+            });
+          }
+        })();
+      </script>
+    {% endif %}
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+    <footer class="container footer">Built with 💖 by Team CodeXbit <span class="footer-text" style="color: #5bc0be;">Smart India Hackathon 2025</span></footer>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
+

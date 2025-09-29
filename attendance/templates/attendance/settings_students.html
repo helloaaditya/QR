@@ -1,0 +1,746 @@
+{% extends 'attendance/base.html' %}
+{% block title %}Settings · QR Attendance{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Settings</h1>
+    <p class="subtitle">Manage students, teachers, and subjects</p>
+  </div>
+</div>
+
+<div class="settings-tabs">
+  <button class="tab-btn active" data-tab="students">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    Students
+  </button>
+  <button class="tab-btn" data-tab="teachers">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    Teachers
+  </button>
+  <button class="tab-btn" data-tab="subjects">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+    Subjects
+  </button>
+</div>
+
+<!-- Students Tab -->
+<div class="tab-content active" id="students-tab">
+  <div class="add-card">
+    <div class="add-card-header">
+      <h3>Add New Student</h3>
+      <p>Enter student details to add them to the system</p>
+    </div>
+    <form method="post" class="add-form">
+      <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="student_id">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Student ID
+          </label>
+          <input type="text" id="student_id" name="student_id" required placeholder="e.g. S001">
+        </div>
+        <div class="form-group">
+          <label for="full_name">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Full Name
+          </label>
+          <input type="text" id="full_name" name="full_name" required placeholder="e.g. Jane Doe">
+        </div>
+        <div class="form-group form-submit">
+          <button type="submit" class="btn-add">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Student
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div class="data-card">
+    <div class="data-card-header">
+      <h3>Student List</h3>
+      <span class="count-badge">{{ students|length }} student{% if students|length != 1 %}s{% endif %}</span>
+    </div>
+    <div class="table-wrapper">
+      <table class="data-table" id="studentTable">
+        <thead>
+          <tr>
+            <th>Student ID</th>
+            <th>Full Name</th>
+            <th>Status</th>
+            <th class="text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in students %}
+            <tr>
+              <td><span class="id-badge">{{ s.student_id }}</span></td>
+              <td class="name-cell">{{ s.full_name }}</td>
+              <td>
+                {% if s.is_active %}
+                  <span class="status-badge active">
+                    <span class="status-dot"></span>
+                    Active
+                  </span>
+                {% else %}
+                  <span class="status-badge inactive">
+                    <span class="status-dot"></span>
+                    Inactive
+                  </span>
+                {% endif %}
+              </td>
+              <td class="actions-cell">
+                <button class="btn-action toggle" data-action="toggle" data-id="{{ s.student_id }}" title="Toggle Status">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="5" width="22" height="14" rx="7" ry="7"/><circle cx="{% if s.is_active %}16{% else %}8{% endif %}" cy="12" r="3"/></svg>
+                </button>
+                <button class="btn-action delete" data-action="delete" data-id="{{ s.student_id }}" title="Delete Student">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                </button>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="4" class="empty-state">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <p>No students yet</p>
+                <span>Add your first student using the form above</span>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Teachers Tab -->
+<div class="tab-content" id="teachers-tab">
+  <div class="add-card">
+    <div class="add-card-header">
+      <h3>Add New Teacher</h3>
+      <p>Enter teacher details to add them to the system</p>
+    </div>
+    <form method="post" action="/settings/teachers/add" class="add-form">
+      <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+      <div class="form-row">
+        <div class="form-group flex-grow">
+          <label for="teacher_name">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Full Name
+          </label>
+          <input type="text" id="teacher_name" name="full_name" required placeholder="e.g. Dr. Smith">
+        </div>
+        <div class="form-group form-submit">
+          <button type="submit" class="btn-add">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Teacher
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div class="data-card">
+    <div class="data-card-header">
+      <h3>Teacher List</h3>
+      <span class="count-badge">{{ teachers|length }} teacher{% if teachers|length != 1 %}s{% endif %}</span>
+    </div>
+    <div class="table-wrapper">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Full Name</th>
+            <th class="text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in teachers %}
+            <tr>
+              <td class="name-cell">{{ t.full_name }}</td>
+              <td class="actions-cell">
+                <button class="btn-action delete" data-act="del-t" data-id="{{ t.id }}" title="Delete Teacher">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                </button>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="2" class="empty-state">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <p>No teachers yet</p>
+                <span>Add your first teacher using the form above</span>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Subjects Tab -->
+<div class="tab-content" id="subjects-tab">
+  <div class="add-card">
+    <div class="add-card-header">
+      <h3>Add New Subject</h3>
+      <p>Enter subject details to add it to the system</p>
+    </div>
+    <form method="post" action="/settings/subjects/add" class="add-form">
+      <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+      <div class="form-row">
+        <div class="form-group flex-grow">
+          <label for="subject_name">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            Subject Name
+          </label>
+          <input type="text" id="subject_name" name="name" required placeholder="e.g. Chemistry">
+        </div>
+        <div class="form-group form-submit">
+          <button type="submit" class="btn-add">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Subject
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div class="data-card">
+    <div class="data-card-header">
+      <h3>Subject List</h3>
+      <span class="count-badge">{{ subjects|length }} subject{% if subjects|length != 1 %}s{% endif %}</span>
+    </div>
+    <div class="table-wrapper">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Subject Name</th>
+            <th class="text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in subjects %}
+            <tr>
+              <td class="name-cell">{{ s.name }}</td>
+              <td class="actions-cell">
+                <button class="btn-action delete" data-act="del-s" data-id="{{ s.id }}" title="Delete Subject">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                </button>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="2" class="empty-state">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                <p>No subjects yet</p>
+                <span>Add your first subject using the form above</span>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+  // Tab switching
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tab = btn.getAttribute('data-tab');
+      
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      
+      btn.classList.add('active');
+      document.getElementById(tab + '-tab').classList.add('active');
+    });
+  });
+
+  // Student actions
+  document.querySelectorAll('#studentTable button').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const id = btn.getAttribute('data-id');
+      const action = btn.getAttribute('data-action');
+      const url = action === 'toggle' ? '/settings/students/toggle' : '/settings/students/delete';
+      
+      if(action === 'delete' && !confirm('Are you sure you want to delete student ' + id + '? This action cannot be undone.')) return;
+      
+      btn.disabled = true;
+      btn.style.opacity = '0.5';
+      
+      const form = new FormData();
+      form.append('student_id', id);
+      
+      try {
+        const res = await fetch(url, {
+          method: 'POST', 
+          headers: {'X-CSRFToken': '{{ csrf_token }}'}, 
+          body: form
+        });
+        const j = await res.json();
+        
+        if(j.ok) { 
+          location.reload(); 
+        } else { 
+          alert(j.error || 'Action failed');
+          btn.disabled = false;
+          btn.style.opacity = '1';
+        }
+      } catch(err) {
+        alert('Network error. Please try again.');
+        btn.disabled = false;
+        btn.style.opacity = '1';
+      }
+    });
+  });
+
+  // Delete teacher
+  document.querySelectorAll('[data-act="del-t"]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.getAttribute('data-id');
+      if(!confirm('Are you sure you want to delete this teacher? This action cannot be undone.')) return;
+      
+      btn.disabled = true;
+      btn.style.opacity = '0.5';
+      
+      const form = new FormData(); 
+      form.append('id', id);
+      
+      try {
+        const res = await fetch('/settings/teachers/delete', {
+          method: 'POST', 
+          headers: {'X-CSRFToken': '{{ csrf_token }}'}, 
+          body: form
+        });
+        const j = await res.json(); 
+        
+        if(j.ok) { 
+          location.reload(); 
+        } else { 
+          alert(j.error || 'Failed to delete teacher');
+          btn.disabled = false;
+          btn.style.opacity = '1';
+        }
+      } catch(err) {
+        alert('Network error. Please try again.');
+        btn.disabled = false;
+        btn.style.opacity = '1';
+      }
+    });
+  });
+
+  // Delete subject
+  document.querySelectorAll('[data-act="del-s"]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.getAttribute('data-id');
+      if(!confirm('Are you sure you want to delete this subject? This action cannot be undone.')) return;
+      
+      btn.disabled = true;
+      btn.style.opacity = '0.5';
+      
+      const form = new FormData(); 
+      form.append('id', id);
+      
+      try {
+        const res = await fetch('/settings/subjects/delete', {
+          method: 'POST', 
+          headers: {'X-CSRFToken': '{{ csrf_token }}'}, 
+          body: form
+        });
+        const j = await res.json(); 
+        
+        if(j.ok) { 
+          location.reload(); 
+        } else { 
+          alert(j.error || 'Failed to delete subject');
+          btn.disabled = false;
+          btn.style.opacity = '1';
+        }
+      } catch(err) {
+        alert('Network error. Please try again.');
+        btn.disabled = false;
+        btn.style.opacity = '1';
+      }
+    });
+  });
+</script>
+
+<style>
+  .page-header {
+    margin-bottom: 2rem;
+  }
+
+  .page-header h1 {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 700;
+    color: #ffffff;
+  }
+
+  .subtitle {
+    margin: 0.5rem 0 0 0;
+    color: #718096;
+    font-size: 0.95rem;
+  }
+
+  .settings-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+    border-bottom: 2px solid #e2e8f0;
+    overflow-x: auto;
+  }
+
+  .tab-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.5rem;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: #718096;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    margin-bottom: -2px;
+  }
+
+  .tab-btn:hover {
+    color: #5bc0be;
+    background: #f7fafc;
+  }
+
+  .tab-btn.active {
+    color: #5bc0be;
+    border-bottom-color: #5bc0be;
+  }
+
+  .tab-content {
+    display: none;
+  }
+
+  .tab-content.active {
+    display: block;
+  }
+
+  .add-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.75rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e2e8f0;
+  }
+
+  .add-card-header {
+    margin-bottom: 1.5rem;
+  }
+
+  .add-card-header h3 {
+    margin: 0 0 0.25rem 0;
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #1a202c;
+  }
+
+  .add-card-header p {
+    margin: 0;
+    color: #718096;
+    font-size: 0.875rem;
+  }
+
+  .add-form {
+    margin: 0;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 1rem;
+    align-items: end;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .form-group.flex-grow {
+    grid-column: 1 / -2;
+  }
+
+  .form-group.form-submit {
+    margin-bottom: 0;
+  }
+
+  .form-group label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #4a5568;
+  }
+
+  .form-group input {
+    padding: 0.75rem 1rem;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    transition: all 0.2s;
+  }
+
+  .form-group input:focus {
+    outline: none;
+    border-color: #5bc0be;
+    box-shadow: 0 0 0 3px rgba(91, 192, 190, 0.1);
+  }
+
+  .btn-add {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: #5bc0be;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .btn-add:hover {
+    background: #4aa9a7;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(91, 192, 190, 0.3);
+  }
+
+  .data-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.75rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e2e8f0;
+  }
+
+  .data-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .data-card-header h3 {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #1a202c;
+  }
+
+  .count-badge {
+    background: #f7fafc;
+    color: #4a5568;
+    padding: 0.375rem 0.875rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+
+  .table-wrapper {
+    overflow-x: auto;
+  }
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .data-table thead tr {
+    background: #f7fafc;
+    border-bottom: 2px solid #e2e8f0;
+  }
+
+  .data-table th {
+    padding: 0.875rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #4a5568;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .data-table td {
+    padding: 1rem;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 0.95rem;
+    color: #ffffff;
+  }
+
+  .data-table tbody tr:hover {
+    background: #130943;
+  }
+
+  .text-right {
+    text-align: right;
+  }
+
+  .id-badge {
+    display: inline-block;
+    background: #edf2f7;
+    color: #4a5568;
+    padding: 0.25rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    font-family: 'Courier New', monospace;
+  }
+
+  .name-cell {
+    font-weight: 500;
+    color: #1a202c;
+  }
+
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.375rem 0.875rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .status-badge.active {
+    background: #c6f6d5;
+    color: #22543d;
+  }
+
+  .status-badge.inactive {
+    background: #fed7d7;
+    color: #742a2a;
+  }
+
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+
+  .status-badge.active .status-dot {
+    background: #22543d;
+  }
+
+  .status-badge.inactive .status-dot {
+    background: #742a2a;
+  }
+
+  .actions-cell {
+    white-space: nowrap;
+    text-align: right;
+  }
+
+  .btn-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: transparent;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    color: #718096;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-left: 0.5rem;
+  }
+
+  .btn-action:hover {
+    border-color: #cbd5e0;
+    background: #f7fafc;
+  }
+
+  .btn-action.toggle:hover {
+    border-color: #5bc0be;
+    color: #5bc0be;
+    background: rgba(91, 192, 190, 0.1);
+  }
+
+  .btn-action.delete:hover {
+    border-color: #fc8181;
+    color: #fc8181;
+    background: rgba(252, 129, 129, 0.1);
+  }
+
+  .btn-action:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 3rem 1rem !important;
+  }
+
+  .empty-state svg {
+    color: #cbd5e0;
+    margin-bottom: 1rem;
+  }
+
+  .empty-state p {
+    margin: 0.5rem 0 0.25rem 0;
+    color: #4a5568;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  .empty-state span {
+    color: #718096;
+    font-size: 0.875rem;
+  }
+
+  @media (max-width: 768px) {
+    .form-row {
+      grid-template-columns: 1fr;
+    }
+
+    .form-group.flex-grow {
+      grid-column: 1;
+    }
+
+    .btn-add {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .settings-tabs {
+      padding-bottom: 0;
+    }
+
+    .tab-btn {
+      flex: 1;
+      justify-content: center;
+      padding: 0.75rem 1rem;
+      font-size: 0.875rem;
+    }
+
+    .data-card-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.75rem;
+    }
+  }
+</style>
+{% endblock %}

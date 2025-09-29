@@ -1,0 +1,29 @@
+{% extends 'attendance/base.html' %}
+{% block title %}Scan · QR Attendance{% endblock %}
+{% block content %}
+<div class="card" style="max-width:520px;margin:auto;text-align:center">
+  <h2>Mark Attendance</h2>
+  <p class="muted">Session: <b>{{ code }}</b></p>
+  <form action="/scan/{{ code }}" method="post">
+    <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+    <label>Choose your name</label>
+    <select name="student_select" style="width:100%">
+      <option value="" selected disabled>-- Select your name --</option>
+      {% for s in students %}
+        <option value="{{ s.student_id }}">{{ s.full_name }} ({{ s.student_id }})</option>
+      {% endfor %}
+    </select>
+    <div style="margin:8px 0" class="muted">Or type your ID if not listed</div>
+    <input type="text" name="student_id" placeholder="S123" style="width:100%">
+    <button type="submit" style="width:100%">Mark Attendance</button>
+  </form>
+  {% if message %}
+    {% if status == 'success' %}
+      <div class="alert success">{{ message }}</div>
+    {% else %}
+      <div class="alert error">{{ message }}</div>
+    {% endif %}
+  {% endif %}
+</div>
+{% endblock %}
+

@@ -1,0 +1,76 @@
+{% extends 'attendance/base.html' %}
+{% block title %}Session {{ session.code }} · QR Attendance{% endblock %}
+{% block head %}
+    <script>
+        let intervalId;
+        function refreshQR(){
+            const img = document.getElementById('qr');
+            const url = img.dataset.base + '?t=' + Date.now();
+            img.src = url; // cache-bust
+        }
+        async function refreshTable(){
+            const res = await fetch('/t/{{ session.code }}/records.json');
+            const data = await res.json();
+            if(!data.ok) return;
+            const tbody = document.querySelector('#records tbody');
+            tbody.innerHTML = '';
+            data.records.forEach(r => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${r.student_id} - ${r.full_name}</td><td>${new Date(r.scanned_at).toLocaleString()}</td><td><button data-id="${r.id}">Delete</button></td>`;
+                tbody.appendChild(tr);
+            });
+            document.getElementById('presentCount').textContent = data.count;
+            // wire delete buttons
+            tbody.querySelectorAll('button[data-id]').forEach(btn => {
+              btn.addEventListener('click', async () => {
+                const form = new FormData();
+                form.append('record_id', btn.getAttribute('data-id'));
+                const res = await fetch('/t/{{ session.code }}/delete', {method:'POST', headers:{'X-CSRFToken': '{{ csrf_token }}'} , body: form});
+                const j = await res.json();
+                if(j.ok){ refreshTable(); }
+                else{ alert(j.error || 'Delete failed'); }
+              });
+            });
+        }
+        function init(){
+            refreshQR();
+            intervalId = setInterval(refreshQR, 15000); // auto-refresh every 15s
+            refreshTable();
+            setInterval(refreshTable, 5000);
+        }
+        function stopSession(){
+            fetch(`/stop/{{ session.code }}`, {method:'POST', headers:{'X-CSRFToken': '{{ csrf_token }}'}})
+            .then(()=>location.reload());
+        }
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+{% endblock %}
+{% block content %}
+    <h1>{{ session.title }} <span class="muted">({{ session.code }})</span></h1>
+    <p>Open: {{ session.is_open }} | Ends at: {{ session.ends_at }}</p>
+    <p class="muted">Teacher: {{ session.teacher }} | Subject: {{ session.subject }} | Slot: {{ session.time_slot }}</p>
+    <div class="row">
+        <div class="card">
+            <h3>Dynamic QR (auto-refresh)</h3>
+            <img class="qr" id="qr" width="260" height="260" data-base="/qr/{{ session.code }}.png" src="" alt="QR">
+            <div style="margin-top:12px">
+                <button onclick="stopSession()">Stop Session</button>
+            </div>
+            <p class="muted">QR encodes: /scan/{{ session.code }}</p>
+        </div>
+        <div class="card" style="min-width:340px;flex:1">
+            <h3>Live Attendance (<span id="presentCount">{{ session.records.count }}</span>)</h3>
+            <table id="records">
+                <thead><tr><th>Student</th><th>Time</th><th>Actions</th></tr></thead>
+                <tbody>
+                {% for r in session.records.all %}
+                    <tr><td>{{ r.student.student_id }} - {{ r.student.full_name }}</td><td>{{ r.scanned_at }}</td><td></td></tr>
+                {% empty %}
+                    <tr><td colspan="2" class="muted">No scans yet</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}
+
