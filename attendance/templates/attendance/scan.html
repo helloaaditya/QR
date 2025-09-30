@@ -1,29 +1,289 @@
 {% extends 'attendance/base.html' %}
 {% block title %}Scan · QR Attendance{% endblock %}
+{% block head %}
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<style>
+  .scan-container { 
+    max-width: 100%; 
+    margin: 0 auto; 
+    padding: 16px; 
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .scan-card {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 24px;
+    margin: 0;
+    border: 1px solid rgba(255,255,255,.08);
+    box-shadow: 0 4px 20px rgba(0,0,0,.3);
+  }
+  .scan-title {
+    font-size: 1.5rem;
+    margin: 0 0 8px 0;
+    text-align: center;
+  }
+  .session-code {
+    background: rgba(91, 192, 190, 0.1);
+    border: 1px solid var(--muted);
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin: 12px 0;
+    text-align: center;
+    font-family: monospace;
+    font-size: 1.1rem;
+  }
+  .form-group {
+    margin: 16px 0;
+  }
+  .form-group label {
+    display: block;
+    margin: 0 0 8px 0;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .mobile-select {
+    width: 100%;
+    font-size: 1.1rem;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 2px solid rgba(255,255,255,.15);
+    background: #0f1a3a;
+    color: var(--text);
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, #a7bbc7 50%), 
+                      linear-gradient(135deg, #a7bbc7 50%, transparent 50%);
+    background-position: calc(100% - 20px) calc(1em + 2px), 
+                         calc(100% - 14px) calc(1em + 2px);
+    background-size: 6px 6px, 6px 6px;
+    background-repeat: no-repeat;
+    padding-right: 40px;
+  }
+  .mobile-input {
+    width: 100%;
+    font-size: 1.1rem;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 2px solid rgba(255,255,255,.15);
+    background: #0f1a3a;
+    color: var(--text);
+    margin-top: 8px;
+  }
+  .mobile-button {
+    width: 100%;
+    font-size: 1.2rem;
+    padding: 16px;
+    border-radius: 12px;
+    background: var(--accent);
+    color: #111;
+    border: none;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 16px;
+    transition: all 0.2s ease;
+  }
+  .mobile-button:hover {
+    background: #ff9500;
+    transform: translateY(-1px);
+  }
+  .mobile-button:active {
+    transform: translateY(0);
+  }
+  .divider {
+    text-align: center;
+    margin: 16px 0;
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+  .alert {
+    border-radius: 12px;
+    padding: 16px;
+    margin: 16px 0;
+    text-align: center;
+    font-weight: 600;
+    font-size: 1rem;
+  }
+  .alert.success {
+    background: #113b25;
+    color: #b9f6ca;
+    border: 1px solid #2e7d32;
+  }
+  .alert.error {
+    background: #3b1111;
+    color: #ffcdd2;
+    border: 1px solid #c62828;
+  }
+  @media (max-width: 480px) {
+    .scan-container { padding: 12px; }
+    .scan-card { padding: 20px; }
+    .scan-title { font-size: 1.3rem; }
+  }
+</style>
+{% endblock %}
 {% block content %}
-<div class="card" style="max-width:520px;margin:auto;text-align:center">
-  <h2>Mark Attendance</h2>
-  <p class="muted">Session: <b>{{ code }}</b></p>
-  <form action="/scan/{{ code }}" method="post">
-    <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
-    <label>Choose your name</label>
-    <select name="student_select" style="width:100%">
-      <option value="" selected disabled>-- Select your name --</option>
-      {% for s in students %}
-        <option value="{{ s.student_id }}">{{ s.full_name }} ({{ s.student_id }})</option>
-      {% endfor %}
-    </select>
-    <div style="margin:8px 0" class="muted">Or type your ID if not listed</div>
-    <input type="text" name="student_id" placeholder="S123" style="width:100%">
-    <button type="submit" style="width:100%">Mark Attendance</button>
-  </form>
-  {% if message %}
-    {% if status == 'success' %}
-      <div class="alert success">{{ message }}</div>
-    {% else %}
-      <div class="alert error">{{ message }}</div>
+<div class="scan-container">
+  <div class="scan-card">
+    <h2 class="scan-title">📱 Mark Attendance</h2>
+    <div class="session-code">Session: {{ code }}</div>
+    
+    <form action="/scan/{{ code }}" method="post" id="attendanceForm">
+      <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+      
+      <div class="form-group">
+        <label for="student_select">👤 Choose your name</label>
+        <select name="student_select" id="student_select" class="mobile-select" required>
+          <option value="" selected disabled>-- Select your name --</option>
+          {% for s in students %}
+            <option value="{{ s.student_id }}">{{ s.full_name }} ({{ s.student_id }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      
+      <div class="divider">OR</div>
+      
+      <div class="form-group">
+        <label for="student_id">🔢 Type your ID manually</label>
+        <input type="text" name="student_id" id="student_id" placeholder="e.g., S123" class="mobile-input">
+      </div>
+      
+      <button type="submit" class="mobile-button" id="submitBtn">✅ Mark Attendance</button>
+    </form>
+    
+    <div id="messageContainer"></div>
+    
+    {% if message %}
+      {% if status == 'success' %}
+        <div class="alert success">🎉 {{ message }}</div>
+      {% else %}
+        <div class="alert error">❌ {{ message }}</div>
+      {% endif %}
     {% endif %}
-  {% endif %}
+  </div>
 </div>
+
+<script>
+// Auto-focus on select for better mobile UX
+document.addEventListener('DOMContentLoaded', function() {
+  const select = document.getElementById('student_select');
+  const input = document.getElementById('student_id');
+  const form = document.getElementById('attendanceForm');
+  
+  // Show loading state immediately
+  document.body.style.cursor = 'default';
+  
+  // Auto-focus on select after a short delay
+  setTimeout(function() {
+    if (select) {
+      select.focus();
+      select.click(); // Open dropdown on mobile
+    }
+  }, 100);
+  
+  // Clear input when select changes
+  select.addEventListener('change', function() {
+    if (this.value) {
+      input.value = '';
+    }
+  });
+  
+  // Clear select when input changes
+  input.addEventListener('input', function() {
+    if (this.value) {
+      select.value = '';
+    }
+  });
+  
+  // Handle form submission with AJAX for better mobile performance
+  form.addEventListener('submit', function(e) {
+    e.preventDefault(); // Prevent page reload
+    
+    const button = document.getElementById('submitBtn');
+    const originalText = button.textContent;
+    const messageContainer = document.getElementById('messageContainer');
+    
+    // Get form data
+    const formData = new FormData(form);
+    const studentSelect = document.getElementById('student_select').value;
+    const studentId = document.getElementById('student_id').value;
+    
+    if (!studentSelect && !studentId) {
+      showMessage('Please select your name or enter ID', 'error');
+      return;
+    }
+    
+    // Show loading state
+    button.disabled = true;
+    button.textContent = '⏳ Processing...';
+    button.style.opacity = '0.7';
+    
+    // Clear previous messages
+    messageContainer.innerHTML = '';
+    
+    // Submit via AJAX
+    fetch(form.action, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+    .then(response => response.text())
+    .then(html => {
+      // Parse response and show message
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      const alertDiv = doc.querySelector('.alert');
+      
+      if (alertDiv) {
+        const message = alertDiv.textContent.trim();
+        const isSuccess = alertDiv.classList.contains('success');
+        showMessage(message, isSuccess ? 'success' : 'error');
+        
+        if (isSuccess) {
+          // Clear form on success
+          form.reset();
+          setTimeout(() => {
+            if (select) select.focus();
+          }, 1000);
+        }
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      showMessage('❌ Network error. Please try again.', 'error');
+    })
+    .finally(() => {
+      // Reset button
+      button.disabled = false;
+      button.textContent = originalText;
+      button.style.opacity = '1';
+    });
+  });
+  
+  function showMessage(text, type) {
+    const messageContainer = document.getElementById('messageContainer');
+    const alertClass = type === 'success' ? 'alert success' : 'alert error';
+    messageContainer.innerHTML = `<div class="${alertClass}">${text}</div>`;
+    
+    // Auto-hide success messages after 3 seconds
+    if (type === 'success') {
+      setTimeout(() => {
+        messageContainer.innerHTML = '';
+      }, 3000);
+    }
+  }
+  
+  // Handle page visibility changes (mobile app switching)
+  document.addEventListener('visibilitychange', function() {
+    if (!document.hidden && select) {
+      select.focus();
+    }
+  });
+});
+</script>
 {% endblock %}
 

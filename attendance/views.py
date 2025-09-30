@@ -295,57 +295,110 @@ def settings_subjects_delete(request):
 
 def qr_image(request, code: str):
     # Encodes a scan URL with the session code
-    public_base = os.getenv('PUBLIC_BASE_URL', '').rstrip('/')
-    if public_base:
-        scan_url = f"{public_base}/scan/{code}"
-    else:
-        scan_url = request.build_absolute_uri(f"/scan/{code}")
-    img = qrcode.make(scan_url)
+    # Use your LAN IP for mobile access
+    scan_url = f"http://10.68.17.134:8000/scan/{code}"
+    
+    # Generate QR with optimized settings
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(scan_url)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    
+    # Optimize response
     buf = io.BytesIO()
-    img.save(buf, format='PNG')
-    return HttpResponse(buf.getvalue(), content_type='image/png')
+    img.save(buf, format='PNG', optimize=True)
+    response = HttpResponse(buf.getvalue(), content_type='image/png')
+    
+    # Prevent caching to ensure fresh QR codes
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response['Pragma'] = 'no-cache'
+    response['Expires'] = '0'
+    response['Content-Length'] = str(len(buf.getvalue()))
+    
+    return response
 
 
 def scan(request, code: str):
     # GET shows a simple form; POST records attendance
+    students = Student.objects.filter(is_active=True).order_by('full_name', 'student_id')
+    
     try:
         session = AttendanceSession.objects.get(code=code)
     except AttendanceSession.DoesNotExist:
-        return render(request, 'attendance/scan.html', {'code': code, 'message': 'Invalid session code'})
+        return render(request, 'attendance/scan.html', {
+            'code': code, 
+            'students': students,
+            'message': 'Invalid session code', 
+            'status': 'error'
+        })
 
     if request.method == 'GET':
-        students = Student.objects.filter(is_active=True).order_by('full_name', 'student_id')
-        return render(request, 'attendance/scan.html', {'code': code, 'students': students})
+        return render(request, 'attendance/scan.html', {
+            'code': code, 
+            'students': students,
+            'session': session
+        })
 
-    # POST
+    # POST - Handle attendance marking
     student_id = (request.POST.get('student_select') or request.POST.get('student_id') or '').strip()
+    
     if not student_id:
-        students = Student.objects.filter(is_active=True).order_by('full_name', 'student_id')
-        return render(request, 'attendance/scan.html', {'code': code, 'students': students, 'message': 'Select your name or enter ID', 'status': 'error'})
+        return render(request, 'attendance/scan.html', {
+            'code': code, 
+            'students': students,
+            'message': 'Please select your name or enter ID', 
+            'status': 'error'
+        })
 
     if not session.is_open:
-        return render(request, 'attendance/scan.html', {'code': code, 'message': 'Session closed', 'status': 'error'})
+        return render(request, 'attendance/scan.html', {
+            'code': code, 
+            'students': students,
+            'message': 'Session is closed', 
+            'status': 'error'
+        })
 
-    student, _ = Student.objects.get_or_create(student_id=student_id, defaults={'full_name': student_id})
-    # Basic device fingerprint: IP + UA hash
+    # Create or get student
+    student, created = Student.objects.get_or_create(
+        student_id=student_id, 
+        defaults={'full_name': student_id}
+    )
+    
+    # Device fingerprint for anti-proxy
     ip = request.META.get('HTTP_X_FORWARDED_FOR') or request.META.get('REMOTE_ADDR') or ''
     ua = request.META.get('HTTP_USER_AGENT', '')
     fingerprint = (ip + '|' + ua)[:120]
+    
     try:
-        AttendanceRecord.objects.create(session=session, student=student, device_fingerprint=fingerprint)
-    except Exception:
-        students = Student.objects.filter(is_active=True).order_by('full_name', 'student_id')
-        return render(request, 'attendance/scan.html', {'code': code, 'students': students, 'message': 'Already scanned (duplicate or same device)', 'status': 'error'})
+        AttendanceRecord.objects.create(
+            session=session, 
+            student=student, 
+            device_fingerprint=fingerprint
+        )
+        message = f'✅ Attendance marked successfully for {student.full_name}'
+        status = 'success'
+    except Exception as e:
+        message = '❌ Already scanned or same device detected'
+        status = 'error'
 
-    students = Student.objects.filter(is_active=True).order_by('full_name', 'student_id')
-    return render(request, 'attendance/scan.html', {'code': code, 'students': students, 'message': 'Attendance marked', 'status': 'success'})
+    return render(request, 'attendance/scan.html', {
+        'code': code, 
+        'students': students,
+        'message': message, 
+        'status': status
+    })
 
 
 def teacher_login(request):
     if request.method == 'GET':
         return render(request, 'attendance/teacher_login.html')
     pin = request.POST.get('pin', '')
-    if pin and pin == os.getenv('TEACHER_PIN', ''):
+    if pin and pin == '1234':  # Fixed PIN for testing
         request.session['teacher_authed'] = True
         return redirect('dashboard')
     return render(request, 'attendance/teacher_login.html', {'error': 'Invalid PIN'})

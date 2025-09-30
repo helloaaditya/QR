@@ -34,9 +34,9 @@
         }
         function init(){
             refreshQR();
-            intervalId = setInterval(refreshQR, 15000); // auto-refresh every 15s
+            intervalId = setInterval(refreshQR, 10000); // auto-refresh every 10s (reduced from 15s)
             refreshTable();
-            setInterval(refreshTable, 5000);
+            setInterval(refreshTable, 3000); // refresh table every 3s (reduced from 5s)
         }
         function stopSession(){
             fetch(`/stop/{{ session.code }}`, {method:'POST', headers:{'X-CSRFToken': '{{ csrf_token }}'}})
@@ -54,6 +54,7 @@
             <h3>Dynamic QR (auto-refresh)</h3>
             <img class="qr" id="qr" width="260" height="260" data-base="/qr/{{ session.code }}.png" src="" alt="QR">
             <div style="margin-top:12px">
+                <button onclick="refreshQR()" style="margin-right:8px">Refresh QR</button>
                 <button onclick="stopSession()">Stop Session</button>
             </div>
             <p class="muted">QR encodes: /scan/{{ session.code }}</p>
